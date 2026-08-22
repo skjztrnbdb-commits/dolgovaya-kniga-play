@@ -1,0 +1,586 @@
+/* Шрифты подключены не отсюда, а ссылкой в index.html: @import браузер находит
+   только после того, как скачает и разберёт этот файл, то есть шрифты начинают
+   грузиться вторым кругом. Семейства те же — Archivo Narrow и Courier Prime,
+   у обоих в переменных ниже прописаны системные запасные, так что без сети
+   игра просто выглядит проще. */
+:root{
+  --paper:#E9EEE4; --band:#D5E0CE; --rule:#93AEBC;
+  --ink:#1C2620; --ink-soft:#5C6B60;
+  --debit:#A32B22; --credit:#1D4F7A; --edge:#B6C4AF; --up:#2C6B4F; --gold:#8A6A1F;
+  --display:'Archivo Narrow','Arial Narrow',Helvetica,sans-serif;
+  --mono:'Courier Prime',ui-monospace,'Courier New',monospace;
+}
+*{box-sizing:border-box}
+/* Правила для страницы целиком. Их не было вовсе: браузер добавлял свои 8px полей,
+   и вокруг «бумаги» шла чужая белая рамка. На itch.io игра живёт внутри iframe
+   ровно заданного размера, и те же 8px дают там лишнюю полосу прокрутки.
+   overscroll-behavior — чтобы докрученный до конца список не тянул за собой
+   страницу (внутри iframe это выглядит как дёрганье игры), а на телефоне
+   не срабатывало обновление жестом вниз посреди захода.
+   padding-bottom с env() — под «домашнюю полоску» айфона: в полноэкранном
+   режиме (кнопка на itch.io) подвал иначе уезжает под неё. */
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:#DCE3D6;overscroll-behavior-y:contain;padding-bottom:env(safe-area-inset-bottom,0px)}
+.dk-root{font-family:var(--mono);color:var(--ink);background:var(--paper);max-width:1120px;margin:0 auto;border:1px solid var(--edge);position:relative;min-height:100vh;-webkit-tap-highlight-color:rgba(28,38,32,.08)}
+/* Двойной тап по кнопке на телефоне иначе зумит страницу вместо второго нажатия */
+button,.dk-tbl tbody tr{touch-action:manipulation}
+/* Экран для выключенного JavaScript (<noscript> в index.html) */
+.dk-noscript{max-width:640px;margin:0 auto;padding:40px 26px;text-align:center;color:var(--ink)}
+.dk-noscript h2{font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;font-size:18px;margin:0 0 12px}
+.dk-noscript p{font-size:13px;line-height:1.7;margin:0}
+.dk-root :focus-visible{outline:2px solid var(--credit);outline-offset:2px}
+
+.dk-head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:6px 18px;padding:15px 20px 12px;border-bottom:2px solid var(--ink);position:sticky;top:0;z-index:8;background:var(--paper);box-shadow:0 2px 6px rgba(28,38,32,.12)}
+.dk-title{font-family:var(--display);font-weight:700;font-size:23px;letter-spacing:.13em;text-transform:uppercase;line-height:1;margin-right:auto}
+.dk-title small{display:block;font-weight:400;font-size:11px;letter-spacing:.19em;color:var(--ink-soft);margin-top:5px}
+.dk-stats{display:flex;flex-wrap:wrap}
+.dk-stat{padding:0 12px;border-left:1px solid var(--edge);text-align:right;min-width:86px}
+.dk-stat:first-child{border-left:0}
+.dk-stat .k{font-family:var(--display);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);display:block}
+.dk-stat .v{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dk-stat .v.warn{color:var(--debit)}
+
+.dk-body{display:grid;grid-template-columns:1fr 300px}
+/* min-width:0 обязателен: у ячейки грида минимальная ширина по умолчанию равна
+   min-content, а бегущая строка новостей — одна длинная строка без переносов
+   (white-space:nowrap). Без этого она растягивала колонку на всю свою длину,
+   и вся страница уезжала за правый край — и на десктопе, и на телефоне
+   (поймано Сергеем 21.08 на живой сборке). overflow:hidden у самой ленты
+   от этого не спасает: он обрезает картинку, но не отменяет вклад в min-content. */
+.dk-main,.dk-side{min-width:0}
+.dk-main{border-right:1px solid var(--edge);position:relative}
+.dk-main::before{content:"";position:absolute;left:9px;top:0;bottom:0;width:3px;border-left:1px solid rgba(163,43,34,.5);border-right:1px solid rgba(163,43,34,.5);pointer-events:none}
+.dk-section{padding:13px 18px 15px 26px}
+.dk-section + .dk-section{border-top:1px solid var(--edge)}
+.dk-legend{font-family:var(--display);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 9px;display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.dk-legend em{font-style:normal;color:var(--ink);letter-spacing:.08em}
+.dk-legend .new{color:var(--debit);font-weight:700}
+.dk-foot-note{font-size:11px;color:var(--ink-soft);margin-top:8px;line-height:1.5}
+.dk-two{display:grid;grid-template-columns:1fr 1fr}
+.dk-two > div{padding:13px 18px 15px 26px}
+.dk-two > div + div{border-left:1px solid var(--edge)}
+
+table.dk-tbl{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+.dk-tbl thead th{font-family:var(--display);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;text-align:right;padding:0 5px 6px;border-bottom:1px solid var(--rule)}
+.dk-tbl thead th:first-child{text-align:left}
+.dk-tbl tbody tr{background:var(--paper)}
+.dk-tbl tbody tr:nth-child(even){background:var(--band)}
+.dk-tbl tbody td{padding:9px 5px;text-align:right;font-variant-numeric:tabular-nums;border-bottom:1px solid rgba(147,174,188,.45);vertical-align:top}
+.dk-tbl tbody td:first-child{text-align:left}
+.lbl{display:none;font-family:var(--display);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+.dk-name{font-family:var(--display);font-size:15px;font-weight:600;letter-spacing:.02em;display:block;cursor:pointer}
+.dk-name:hover{text-decoration:underline dotted}
+.dk-tag{font-size:9px;font-family:var(--display);letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+.tag-rot{color:#7A5C12}
+.tag-eli{color:#6A3FA0}
+.tag-std{color:var(--ink-soft)}
+.dk-ask{font-weight:700;color:var(--credit)}
+.dk-bid{font-weight:700;color:var(--debit)}
+.dk-sub{font-size:10px;display:block;font-weight:400;color:var(--ink-soft);line-height:1.4}
+/* средняя закупка в колонке «в трюме» — то, с чем сравнивают котировку рынка,
+   поэтому она набрана размером самой таблицы, а количество ушло в .dk-sub */
+.hold-avg{display:block;font-size:13px;color:var(--ink);line-height:1.4}
+.dk-warn{font-size:10px;color:var(--debit);display:block;font-weight:400;line-height:1.35}
+.dk-boost{font-size:10px;color:var(--up);display:block;font-weight:700;line-height:1.35}
+.dk-boost.down{color:var(--debit)} /* штраф к цене — красным, а не «зелёной надбавкой» */
+.dk-arw{font-size:11px;font-weight:700}
+.dk-arw.g{color:var(--up)}
+.dk-arw.r{color:var(--debit)}
+.dk-none{color:var(--ink-soft);font-style:italic;font-size:12px}
+.dk-qty{white-space:nowrap}
+.dk-qty input{display:block;width:100%;box-sizing:border-box;font-family:var(--mono);font-size:13px;text-align:right;padding:4px;border:1px solid var(--edge);background:#fff;color:var(--ink)}
+/* − [поле] + одной строкой: нативные спиннеры мелкие, по ним не попасть */
+.qstep{display:flex;gap:3px;align-items:stretch}
+.qstep button{flex:0 0 26px;font-size:14px;line-height:1;padding:0;font-weight:700}
+.qstep input{flex:1;min-width:0}
+.dk-qty input::-webkit-outer-spin-button,.dk-qty input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.dk-qty input[type=number]{-moz-appearance:textfield;appearance:textfield}
+/* Нижний ряд тянется на всю ширину ячейки — ровно как ряд «− поле +» над ним,
+   поэтому края совпадают сами, без подгонки ширин под конкретный шрифт.
+   flex-wrap убран нарочно: три кнопки всегда в одну строку, на узком экране
+   они сжимаются, а не переносятся и не ломают выравнивание. */
+.qbtns{display:flex;gap:3px;margin-top:4px}
+.qbtns button{flex:1;min-width:0;font-size:9px;padding:2px 5px;letter-spacing:0;text-transform:none}
+.dk-acts{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.dk-acts button{font-size:10px;padding:5px 3px;letter-spacing:0;text-transform:none;font-variant-numeric:tabular-nums;line-height:1.3}
+/* Цена за единицу — то, по чему сделки вообще сравнивают, а не сноска: 9px при opacity .7
+   читались с трудом. Теперь она крупнее самой надписи на кнопке и заметно контрастнее.
+   Верхняя строка нарочно осталась 10px: на 11px «Партия 46 · $1 397» переносится на две
+   строки и ряды ведомости начинают прыгать по высоте. */
+.dk-acts button b{display:block;font-weight:400;opacity:.85;font-size:12px;margin-top:1px}
+.dk-acts button.deliver{grid-column:1/-1;border-color:var(--gold);color:var(--gold)}
+.dk-acts button.deliver:hover:not(:disabled){background:var(--gold);color:var(--paper)}
+
+button{font-family:var(--display);font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;padding:5px 8px;background:transparent;color:var(--ink);border:1px solid var(--ink);cursor:pointer}
+button:hover:not(:disabled){background:var(--ink);color:var(--paper)}
+button:disabled{opacity:.3;cursor:default}
+button.buy{border-color:var(--credit);color:var(--credit)}
+button.buy:hover:not(:disabled){background:var(--credit);color:var(--paper)}
+button.sell{border-color:var(--debit);color:var(--debit)}
+button.sell:hover:not(:disabled){background:var(--debit);color:var(--paper)}
+button.wide{display:block;width:100%;padding:8px;margin-bottom:6px;text-align:left;text-transform:none;letter-spacing:.02em;font-size:12px}
+button.wide i{display:block;font-style:normal;font-family:var(--mono);font-size:10px;opacity:.72;margin-top:2px;line-height:1.4}
+/* кнопка дальнего тракта — золотом, как и сам тракт на карте: это другой ход, а не
+   ещё один сосед, и связь «кнопка ↔ пунктир на карте» должна читаться без подписи */
+button.wide.long{border-color:var(--gold);color:var(--gold)}
+button.wide.long:hover:not(:disabled){background:var(--gold);color:var(--paper)}
+
+.dk-side{background:var(--band)}
+.dk-side .dk-section + .dk-section{border-top:1px solid var(--edge)}
+.dk-debt{background:var(--debit);color:#F3EFE6;padding:11px;margin-bottom:9px}
+.dk-debt.paid{background:var(--gold)}
+.dk-debt.ready{background:var(--up)}
+.dk-debt .n{font-family:var(--display);font-size:10px;letter-spacing:.2em;text-transform:uppercase;opacity:.85;display:flex;justify-content:space-between}
+.dk-debt .v{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.15}
+.dk-debt .s{font-size:11px;opacity:.93;line-height:1.45;margin-top:4px}
+.dk-here{background:var(--ink);color:var(--paper);padding:9px;margin-bottom:8px}
+.dk-here span{font-family:var(--display);font-size:13px;letter-spacing:.06em;font-weight:600;display:block}
+.dk-here b{font-size:10px;letter-spacing:.05em;opacity:.8;font-weight:400;display:block;margin-top:3px;line-height:1.45}
+.dk-bank{display:flex;gap:6px;margin-top:8px}
+.dk-bank input{flex:1;min-width:0;font-family:var(--mono);font-size:13px;text-align:right;padding:5px;border:1px solid var(--edge);background:#fff;color:var(--ink)}
+.dk-note{font-size:11px;color:var(--ink-soft);line-height:1.5;margin-top:8px}
+.dk-alert{font-size:11px;color:var(--debit);font-weight:700;line-height:1.5;margin-top:8px}
+svg.dk-map{display:block;width:100%;height:auto;margin:2px 0 8px}
+svg.dk-map .lk{stroke:var(--rule);stroke-width:1.5}
+/* дальний тракт — не такая же дорога, как остальные: пунктир и подпись со сроком */
+svg.dk-map .lk.long{stroke:var(--gold);stroke-dasharray:5 4;stroke-width:1.5;opacity:.9}
+svg.dk-map text.road{font-family:var(--mono);font-size:7px;fill:var(--gold);letter-spacing:.02em}
+svg.dk-map text{font-family:var(--mono);font-size:9px;fill:var(--ink-soft)}
+svg.dk-map text.cur{fill:var(--ink);font-weight:700}
+svg.dk-map g.hit{cursor:pointer}
+.dk-dir{font-size:10px;line-height:1.55;color:var(--ink-soft);margin-bottom:9px}
+.dk-dir div{margin-bottom:2px}
+.dk-dir b{color:var(--ink);font-weight:700}
+.dk-dir .today{color:var(--credit)}
+
+.dk-rum{font-size:12px;line-height:1.55;margin-bottom:9px}
+.dk-rum .h{font-family:var(--display);font-size:9px;letter-spacing:.12em;color:var(--ink-soft)}
+.dk-rum .h.ok{color:var(--up)}
+.dk-rum .h.no{color:var(--debit)}
+
+.dk-card{border:1px solid var(--edge);background:var(--paper);padding:9px;margin-bottom:8px;font-size:12px;line-height:1.5}
+.dk-card.gold{border:2px solid var(--gold)}
+.dk-card.duty{border-left:3px solid var(--debit);background:#F2E7E2}
+/* блок предписания — отдельный от контрактов, с красной чертой сверху: это не
+   предложение, которое можно взвесить, а обязательство, спущенное гильдией */
+/* селектор с запасом по весу: обычный разделитель секций задан как
+   `.dk-section + .dk-section` (два класса), и одиночный `.dk-duty-sec` ему
+   проигрывал по специфичности — красная черта молча оставалась серой */
+.dk-duty-sec,.dk-section+.dk-section.dk-duty-sec{border-top:2px solid var(--debit)}
+.dk-duty-sec .dk-legend span:first-child{color:var(--debit)}
+.dk-duty-sec #d-count{color:var(--debit);font-weight:700}
+.dk-card h4{font-family:var(--display);font-size:13px;letter-spacing:.04em;margin:0 0 3px;font-weight:600;display:flex;justify-content:space-between;gap:6px}
+.dk-card h4 i{font-style:normal;font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-soft);white-space:nowrap}
+.dk-card h4 i.g{color:var(--gold)}
+/* Иерархия карточки по тому, куда игрок реально смотрит: остаток к сдаче и
+   наличие в трюме — крупно; точка сдачи, срок и цена за единицу — заметно;
+   сумма, надбавка и неустойка — одной мелкой строкой (нужны, но взгляд на них
+   не задерживается). */
+/* justify-content:space-between растаскивал «нужно», число и «единиц» по всей
+   ширине карточки — на телефоне это читалось как три отдельные надписи. Теперь
+   строка идёт слитно, а «в трюме N» прижат вправо своим margin-left:auto */
+.dk-card .need{font-size:14px;line-height:1.4;margin:2px 0 3px;display:flex;
+  align-items:baseline;gap:5px;flex-wrap:wrap}
+.dk-card .need b{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+.dk-card .inhold{font-size:11px;color:var(--ink-soft);white-space:nowrap;margin-left:auto}
+.dk-card .inhold.has{color:var(--up);font-weight:700}
+.dk-card .terms{color:var(--ink-soft);font-size:12px}
+.dk-card .terms b{color:var(--ink)}
+.dk-card .per{font-size:15px;font-weight:700;color:var(--credit);font-variant-numeric:tabular-nums;margin-top:3px}
+.dk-card .per span{font-size:10px;font-weight:400;color:var(--ink-soft);letter-spacing:.04em}
+.dk-card .fine{font-size:10px;color:var(--ink-soft);line-height:1.45;margin-top:4px;
+  border-top:1px solid var(--edge);padding-top:4px}
+.dk-card .row{display:flex;gap:6px;margin-top:6px}
+
+.dk-log{font-size:12px;line-height:1.6;max-height:180px;overflow-y:auto;padding-left:2px}
+.dk-log p{margin:0 0 4px}
+.dk-log .d{color:var(--ink-soft);font-size:10px;letter-spacing:.1em}
+.dk-log .neg{color:var(--debit)}
+.dk-log .pos{color:var(--up)}
+
+.chart-tabs{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.chart-tabs button{font-size:10px;padding:3px 7px;letter-spacing:.02em;text-transform:none}
+.chart-tabs button.on{background:var(--ink);color:var(--paper)}
+svg.dk-chart{display:block;width:100%;height:auto;background:rgba(255,255,255,.35)}
+svg.dk-chart text{font-family:var(--mono);font-size:8px;fill:var(--ink-soft)}
+svg.dk-chart .grid{stroke:var(--rule);stroke-width:.5;opacity:.5}
+.chart-key{font-size:10px;color:var(--ink-soft);margin-top:6px;display:flex;flex-wrap:wrap;gap:10px}
+.chart-key span b{display:inline-block;width:16px;height:2px;vertical-align:middle;margin-right:4px}
+
+.dk-foot{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:10px 20px;border-top:2px solid var(--ink);
+  background:var(--band);position:sticky;bottom:0;z-index:8;box-shadow:0 -2px 6px rgba(28,38,32,.12)}
+.dk-foot .sp{margin-left:auto;font-size:11px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+/* Время сборки прямо в подвале. Раньше оно было только в шапке выгруженного журнала,
+   и вопрос «я вообще на свежей версии или браузер подсунул кэш?» решался гаданием —
+   на этом уже обжигались (см. docs/HISTORY.md, разбор log-8). */
+.dk-foot .build{font-size:10px;color:var(--ink-soft);opacity:.75;font-variant-numeric:tabular-nums;
+  padding-left:10px;border-left:1px solid var(--edge)}
+.dk-foot button{font-size:10px;padding:5px 7px}
+
+.dk-toast-backdrop{position:fixed;inset:0;background:rgba(28,38,32,.45);z-index:19;cursor:pointer}
+/* колонка по центру экрана: тосты стакаются, а не вытесняют друг друга.
+   Позиционируется стек, а не сам тост, — иначе они легли бы друг на друга */
+.dk-toast-stack{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:20;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  max-width:88%;max-height:86vh;overflow-y:auto}
+.dk-toast{cursor:pointer;
+  background:var(--paper);border:3px double var(--debit);color:var(--debit);
+  font-family:var(--display);font-size:15px;font-weight:700;letter-spacing:.08em;
+  padding:9px 20px;text-align:center;box-shadow:0 3px 0 rgba(28,38,32,.14)}
+.dk-toast.good{border-color:var(--up);color:var(--up)}
+.dk-toast.gold{border-color:var(--gold);color:var(--gold)}
+.dk-toast.info{border-color:var(--credit);color:var(--credit)}
+.dk-toast small{display:block;font-family:var(--mono);font-size:11px;font-weight:400;letter-spacing:0;margin-top:4px;text-transform:none}
+@media (prefers-reduced-motion: no-preference){
+  /* у попапа своя точка отсчёта (он сам центрируется через translate),
+     у тоста — нет: его центрирует стек, поэтому чистый scale */
+  .dk-popup{animation:pop .28s cubic-bezier(.2,1.5,.5,1) 1}
+  @keyframes pop{from{transform:translate(-50%,-50%) scale(1.4);opacity:0}to{transform:translate(-50%,-50%) scale(1);opacity:1}}
+  .dk-toast{animation:popin .28s cubic-bezier(.2,1.5,.5,1) 1}
+  @keyframes popin{from{transform:scale(1.4);opacity:0}to{transform:scale(1);opacity:1}}
+  .dk-stampmark{animation:thud .32s cubic-bezier(.2,1.4,.5,1) 1}
+  @keyframes thud{from{transform:rotate(-6deg) scale(2.1);opacity:0}to{transform:rotate(-6deg) scale(1);opacity:.88}}
+}
+
+/* Всплывашка с приглушённым фоном, не гаснет сама — только явным закрытием.
+   В отличие от .dk-over (полноэкранная подмена под меню/финал/настройки) и
+   .dk-toast (короткое авто-гаснущее объявление) — здесь текста больше, чем
+   в toast, но недостаточно, чтобы подменять собой весь экран. */
+/* Попап выбора (бедуин, бродячий торговец): вариантов больше двух и в каждом цифры,
+   поэтому кнопки идут списком во всю ширину, а не парой в строку, как в «да/нет». */
+.dk-choice{text-align:left;max-width:460px}
+.dk-choice h4{font-family:var(--display);font-size:13px;letter-spacing:.14em;text-transform:uppercase;
+  margin:0 0 8px;color:var(--gold)}
+.dk-choice p{font-size:12.5px;line-height:1.6;margin:0 0 12px;color:var(--ink-soft)}
+.dk-choice button.wide{text-align:left;margin-bottom:6px}
+.dk-choice > button:last-child{width:100%;margin-top:4px}
+.dk-popup-backdrop{position:fixed;inset:0;background:rgba(28,38,32,.45);z-index:19;cursor:pointer}
+.dk-popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:20;
+  background:var(--paper);border:1px solid var(--edge);padding:16px 20px;
+  max-width:420px;width:88%;box-shadow:0 4px 14px rgba(28,38,32,.22);text-align:center}
+.dk-popup p{line-height:1.6;font-size:13px;margin:0 0 4px}
+.dk-popup .row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+.dk-popup button{margin-top:10px}
+.dk-popup .row button{margin-top:0}
+
+.dk-over{position:absolute;inset:0;background:rgba(233,238,228,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:22px;z-index:10;overflow-y:auto;overflow-x:hidden}
+/* Меню и настройки — с ачивками, длина которых зависит от того, сколько уже
+   открыто, — не центрируем и не обрезаем своим скроллом (иначе получается
+   скролл внутри скролла, и на длинном списке содержимое обрезано мелким
+   окошком). Пусть страница просто растёт вниз, как обычная страница;
+   overflow-y:auto тут не убираем совсем — вернётся, если содержимое всё же
+   короче экрана, но justify-content:flex-start уже не даёт ему всплыть
+   вверх и центрироваться на пустом месте. */
+/* overflow-x тоже обязателен: если один из overflow-x/overflow-y — visible,
+   а другой нет, спека молча превращает visible обратно в auto (тот самый
+   скролл-в-скролле, от которого и уходим) */
+/* bottom:auto;height:auto — высота по СОДЕРЖИМОМУ, а не по высоте #root.
+   С inset:0 получался замкнутый круг: высота оверлея бралась от #root, а
+   min-height у #root мы считаем по содержимому оверлея (stretchRootFor) —
+   единственное измерение делалось до того, как оверлей вырастет, и хвост
+   (кнопка «Наверх» и нижний padding) вылезал за рамку.
+   min-height:100% (а не 100vh) — второй случай: настройки поверх ДЛИННОЙ игровой
+   страницы, где содержимого оверлея меньше, чем высота #root. Тогда высота по
+   содержимому оставила бы низ игры неприкрытым; 100% тянет оверлей до низа #root. */
+.dk-over.dk-start,.dk-over.dk-settings{justify-content:flex-start;overflow-x:visible;overflow-y:visible;
+  padding-top:40px;padding-bottom:40px;bottom:auto;height:auto;min-height:100%}
+/* Итоговый разбор захода: экран перестаёт быть одной строкой и становится страницей,
+   поэтому финал, как меню и настройки, не центрируется, а растёт вниз. */
+.dk-over.dk-final{justify-content:flex-start;padding-top:34px;padding-bottom:34px;
+  overflow-x:visible;overflow-y:visible;bottom:auto;height:auto;min-height:100%;
+  /* непрозрачный, а не 96%: шапка игры — sticky, и при прокрутке длинного разбора
+     она ехала бы призраком сквозь полупрозрачный фон поверх цифр */
+  background:var(--paper)}
+.over-stats{width:min(680px,100%);margin-top:20px;text-align:left}
+.over-stats .dk-chart{width:100%;height:auto;margin-bottom:2px}
+.over-stats .verdict{max-width:none;margin:10px 0 4px;padding:9px 12px;background:var(--band);
+  border-left:3px solid var(--debit);font-size:13px;line-height:1.6}
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.sbox{background:var(--paper);border:1px solid var(--edge);padding:9px 11px}
+.sbox h4{font-family:var(--display);font-size:10px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--ink-soft);font-weight:600;margin:0 0 6px;border-bottom:1px solid var(--edge);padding-bottom:4px}
+.srow{display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding:2px 0}
+.srow .sk{font-size:11px;color:var(--ink-soft);line-height:1.35}
+.srow .sv{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.srow .sv.pos{color:var(--up)}
+.srow .sv.neg{color:var(--debit)}
+/* «что запомнилось» отделено от столбиков цифр: это другой разговор, а не ещё одна
+   колонка — отступ и линейка сверху */
+.over-stats .dk-legend.split{margin-top:20px;padding-top:12px;border-top:1px solid var(--edge)}
+.sevents{list-style:none;margin:0;padding:0}
+.sevents li{font-size:12px;line-height:1.6;padding:5px 0 5px 14px;position:relative;border-bottom:1px solid var(--edge)}
+.sevents li:last-child{border-bottom:0}
+.sevents li:before{content:'·';position:absolute;left:3px;color:var(--ink-soft)}
+@media (max-width:560px){.sgrid{grid-template-columns:1fr}}
+.dk-end{width:min(560px,100%);margin-top:24px;padding-top:16px;border-top:1px solid var(--edge);text-align:center}
+.dk-end button{width:min(200px,100%)}
+.dk-stampmark{font-family:var(--display);font-weight:700;font-size:clamp(24px,6vw,52px);letter-spacing:.16em;color:var(--debit);border:5px double var(--debit);padding:11px 24px;transform:rotate(-6deg);opacity:.88}
+.dk-over p{max-width:470px;line-height:1.65;font-size:13px}
+.dk-over .fig{font-size:21px;font-weight:700;font-variant-numeric:tabular-nums}
+.dk-start h2{font-family:var(--display);font-size:clamp(20px,5vw,30px);letter-spacing:.12em;text-transform:uppercase;margin:0 0 6px}
+.dk-start .lede{max-width:480px;margin-bottom:14px}
+/* «Продолжить заход» — главное действие на экране, если заход не доигран:
+   во всю ширину и с настоящими цифрами, а не одно слово без контекста */
+.dk-resume{width:min(430px,100%);padding:12px;border-width:2px;border-color:var(--credit);color:var(--credit);
+  font-size:14px;letter-spacing:.06em}
+.dk-resume:hover:not(:disabled){background:var(--credit);color:var(--paper)}
+.dk-resume i{display:block;font-style:normal;font-family:var(--mono);font-size:11px;
+  letter-spacing:0;text-transform:none;opacity:.85;margin-top:4px;line-height:1.5}
+/* разделитель с подписью: ниже него — только начало новой игры */
+.dk-split{display:flex;align-items:center;gap:10px;width:min(430px,100%);margin:18px 0 10px;
+  font-family:var(--display);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft)}
+.dk-split::before,.dk-split::after{content:'';flex:1;height:1px;background:var(--edge)}
+.dk-diff{display:flex;flex-direction:column;gap:7px;width:min(430px,100%)}
+.dk-diff button{padding:10px;text-align:left;text-transform:none;letter-spacing:.02em;font-size:13px}
+.dk-diff button i{display:block;font-style:normal;font-family:var(--mono);font-size:11px;opacity:.75;margin-top:4px;line-height:1.5}
+.dk-diff button.lock{border-style:dashed;opacity:.5}
+.dk-diff button.lock:hover{background:transparent;color:var(--ink)}
+.ach-wrap{width:min(560px,100%);text-align:left;margin-top:14px;border-top:1px solid var(--edge);padding-top:12px}
+.ach-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ach{border:1px solid var(--edge);padding:6px 8px;font-size:11px;line-height:1.4;background:var(--paper)}
+.ach.off{opacity:.42}
+.ach.locked{opacity:.42;border-style:dashed}
+.ach.capstone{grid-column:1/-1;border:2px solid var(--gold)}
+.ach.capstone.locked{border-style:dashed}
+.ach.capstone b{color:var(--gold)}
+.ach b{font-family:var(--display);font-size:12px;letter-spacing:.03em;display:block}
+.ach .bf{color:var(--up);font-size:10px;display:block}
+.ach .status{color:var(--ink-soft);font-size:9px;display:block;margin-top:2px;font-style:italic}
+.ach button{font-size:9px;padding:2px 6px;margin-top:4px}
+
+.chart-tabs button.owned{border-width:2px}
+/* вкладка баланса нарочно не похожа на товарные: это не товар, а сводка по заходу */
+.chart-tabs button.bal{border-color:var(--ink);font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;font-size:9px;margin-right:8px}
+.chart-tabs button.bal.on{background:var(--ink);color:var(--paper)}
+.dk-chart .today-lbl{fill:var(--ink);font-weight:700;font-size:8px}
+svg.dk-map .mk-shape{fill:var(--paper);stroke:var(--ink-soft);stroke-width:1.5}
+svg.dk-map .mk-shape.cur{fill:var(--ink);stroke:var(--ink)}
+svg.dk-map g.hit .mk-shape{stroke:var(--credit);stroke-width:2}
+svg.dk-map g.hit:hover .mk-shape{fill:var(--credit)}
+tr.dk-row-flag td{background:rgba(138,106,31,.16)}
+tr.dk-row-flag .dk-name{color:var(--gold)}
+.exp-btn{font-size:9px;padding:2px 5px;letter-spacing:0;text-transform:none;margin-left:5px;border-color:var(--debit);color:var(--debit)}
+.exp-btn:hover{background:var(--debit);color:var(--paper)}
+/* Предписания живут в такой же сетке, что и контракты: раньше #duties был
+   обычным блоком, карточка растягивалась на всю ширину и колонки не сходились
+   с контрактами под ней. auto-fill оставляет пустые дорожки, поэтому одинокое
+   предписание получает ровно ту же ширину, что и карточка контракта. */
+#contracts,#duties{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+#contracts .dk-card,#duties .dk-card{margin-bottom:0}
+.dk-boost[title]{cursor:help;text-decoration:underline dotted}
+#close-book{margin-top:8px}
+@media (max-width:1000px){
+  .dk-body{grid-template-columns:1fr}
+  .dk-main{border-right:0;border-bottom:1px solid var(--edge)}
+  .dk-two{grid-template-columns:1fr}
+  .dk-two > div + div{border-left:0;border-top:1px solid var(--edge)}
+  .dk-section,.dk-two > div{padding:12px 14px 14px 20px}
+  .lbl{display:block;margin-bottom:1px}
+  .dk-tbl{table-layout:auto}
+  .dk-tbl thead{display:none}
+  .dk-tbl,.dk-tbl tbody,.dk-tbl tr,.dk-tbl td{display:block;width:auto}
+  .dk-tbl tbody tr{border:1px solid var(--edge);margin-bottom:9px;padding:10px;background:var(--paper)}
+  .dk-tbl tbody tr:nth-child(even){background:var(--band)}
+  .dk-tbl tbody td{border:0;padding:0;text-align:left}
+  .dk-tbl td.c-name{margin-bottom:8px}
+  .dk-tbl td.c-ask,.dk-tbl td.c-bid,.dk-tbl td.c-hold{display:inline-block;width:49%;vertical-align:top;margin-bottom:8px}
+  .dk-tbl td.dk-qty{margin-bottom:6px}
+  .dk-stat{min-width:70px;padding:0 8px}
+  .dk-stat .v{font-size:16px}
+}
+@media (max-width:430px){
+  .dk-tbl td.c-ask,.dk-tbl td.c-bid,.dk-tbl td.c-hold{width:100%}
+  .dk-over{padding:14px}
+  .ach{padding:5px 6px;font-size:10px}
+}
+@media (max-width:320px){
+  .ach-grid{grid-template-columns:1fr}
+}
+
+/* ============ обучение ============
+   Панель шага висит внизу поверх игры и НЕ перекрывает её: в обучении ничего
+   не блокируется, игрок с первой минуты работает с настоящим интерфейсом
+   (сломанный шаг чинится кнопкой «Повторить шаг»). .tut-on поднимает низ #root,
+   чтобы панель не легла поверх футера. */
+.dk-root.tut-on{padding-bottom:210px}
+.dk-tut-panel{position:fixed;left:50%;bottom:0;transform:translateX(-50%);z-index:15;
+  width:min(680px,100%);background:var(--paper);border:2px solid var(--ink);border-bottom:0;
+  box-shadow:0 -4px 16px rgba(28,38,32,.28);padding:11px 16px 13px;max-height:52vh;overflow-y:auto}
+.dk-tut-panel .h{font-family:var(--display);font-size:10px;letter-spacing:.17em;
+  text-transform:uppercase;color:var(--ink-soft);display:flex;justify-content:space-between;gap:12px}
+.dk-tut-panel h4{font-family:var(--display);font-size:15px;letter-spacing:.06em;margin:5px 0 4px}
+.dk-tut-panel p{font-size:13px;line-height:1.6;margin:6px 0 0}
+/* результат шага — тем же зелёным, что и всякая прибыль в игре */
+.dk-tut-panel p.ok{color:var(--up);border-left:3px solid var(--up);padding-left:9px}
+.dk-tut-panel p.fin{color:var(--ink)}
+.dk-tut-panel p.stuck{color:var(--debit);border-left:3px solid var(--debit);padding-left:9px}
+.dk-tut-panel .row{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.dk-tut-panel .row button{font-size:10px}
+.dk-tut-panel .row button.go{border-width:2px;border-color:var(--up);color:var(--up)}
+.dk-tut-panel .row button.go:hover{background:var(--up);color:var(--paper)}
+/* подсветка того места, о котором говорит шаг */
+.dk-tut-focus{outline:2px dashed var(--gold);outline-offset:3px;background:rgba(138,106,31,.07)}
+@media (prefers-reduced-motion: no-preference){
+  .dk-tut-focus{animation:tutpulse 1.6s ease-in-out infinite}
+  @keyframes tutpulse{0%,100%{outline-color:var(--gold)}50%{outline-color:rgba(138,106,31,.25)}}
+}
+.dk-diff button.tut-entry{border-color:var(--gold);color:var(--gold)}
+.dk-diff button.tut-entry:hover{background:var(--gold);color:var(--paper)}
+.dk-diff button.tut-card{position:relative}
+.dk-diff button.tut-card.passed{border-color:var(--up);color:var(--up)}
+.dk-diff button.tut-card.passed:hover{background:var(--up);color:var(--paper)}
+.dk-diff button.tut-card .mark{position:absolute;top:8px;right:10px;font-size:9px;
+  font-family:var(--display);letter-spacing:.12em;text-transform:uppercase}
+@media (max-width:560px){
+  .dk-root.tut-on{padding-bottom:250px}
+  .dk-tut-panel{max-height:46vh;padding:10px 12px 12px}
+}
+
+/* ============ бегущая строка новостей ============
+   Три последних события/слуха лентой над графиком. Раньше это лежало только
+   в журнале, и самое интересное, что происходит в игре само по себе, игрок
+   находил случайно. */
+.dk-tickwrap{padding:11px 18px 0 26px}
+.dk-ticker{overflow:hidden;white-space:nowrap;padding:5px 0;font-size:12px;
+  border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+/* навёл мышь — лента встала: длинную новость иначе не дочитать */
+.dk-ticker:hover .tick-track{animation-play-state:paused}
+.tick-track{display:inline-block;animation-name:tickscroll;animation-timing-function:linear;
+  animation-iteration-count:infinite}
+@keyframes tickscroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.tick-track .it{margin-right:38px}
+.tick-track .it b{font-family:var(--display);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-soft);font-weight:600;margin-right:7px}
+/* событие цен — золотым: это редкость, ради которой ленту и завели */
+.tick-track .it.ev{color:var(--gold);font-weight:700}
+.tick-track .it.ev b{color:var(--gold)}
+/* с выключенным движением лента не едет, а просто перечисляет новости столбиком:
+   иначе всё, что не влезло в ширину экрана, было бы не прочитать вовсе */
+@media (prefers-reduced-motion: reduce){
+  .dk-ticker{white-space:normal}
+  .tick-track{display:block;animation:none}
+  .tick-track .copy:nth-child(2){display:none}
+  .tick-track .it{display:block;margin:0 0 3px}
+}
+
+/* ============ только вертикально ============
+   Решение Сергея (21.08): лежачий экран неудобен никому, и часть игроков даже
+   не скачивает игру, увидев альбомный скриншот. Поэтому мобильной альбомной
+   вёрстки не будет вовсе — вместо неё просьба повернуть телефон обратно.
+
+   Условие срабатывания намеренно узкое: альбомная ориентация ПЛЮС низкий экран
+   ПЛЮС грубый указатель (палец). Без последнего под правило попадало бы и обычное
+   окно браузера на компьютере, если его сплющить по высоте, — а там просьба
+   «поверните телефон» выглядит издевательством. */
+.dk-rotate{display:none}
+@media (orientation:landscape) and (max-height:560px) and (pointer:coarse){
+  .dk-rotate{display:flex;position:fixed;inset:0;z-index:60;
+    background:var(--paper);color:var(--ink);font-family:var(--mono);
+    flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:20px;gap:6px}
+  .dk-rotate h2{font-family:var(--display);font-size:clamp(17px,5vw,24px);letter-spacing:.12em;
+    text-transform:uppercase;margin:6px 0 0}
+  .dk-rotate p{font-size:13px;line-height:1.6;margin:0;max-width:340px;color:var(--ink-soft)}
+  .dk-rotate svg{max-height:38vh}
+}
+
+/* ============ телефон ============
+   Разбор Сергея 21.08 по живой мобилке: «хедер поплыл, график супер мелкий,
+   карточки товара супернеудобные, игра превратилась в симулятор прокрутки».
+   Здесь всё про одно — уложить те же данные в втрое меньшую высоту, ничего
+   не пряча. Порог 560px совпадает с NARROW() в render.js: там от него зависит
+   масштаб графика и состав шапки, и разъезжаться им нельзя. */
+@media (max-width:560px){
+  /* ШАПКА. Была: заголовок в две строки плюс пять клеток, которые переносились
+     как придётся, — 290 точек из 812 занимала одна шапка. Стало: заголовок одной
+     строкой и ровная сетка из пяти клеток, около 90 точек. */
+  .dk-head{padding:7px 10px 6px;gap:1px 8px;box-shadow:0 1px 4px rgba(28,38,32,.1)}
+  .dk-title{font-size:17px;letter-spacing:.09em;margin-right:0;width:100%}
+  .dk-title small{font-size:8px;letter-spacing:.13em;margin-top:1px}
+  .dk-stats{width:100%;display:grid;grid-template-columns:repeat(5,1fr);gap:0}
+  .dk-stat{min-width:0;padding:2px 4px 0 0;text-align:left;border-left:0}
+  .dk-stat .k{font-size:8px;letter-spacing:.05em}
+  .dk-stat .v{font-size:13px;letter-spacing:-.02em}
+
+  /* ОТСТУПЫ. Поля разлинованной бумаги на телефоне съедали пятую часть ширины */
+  .dk-section,.dk-two > div{padding:9px 10px 11px 16px}
+  .dk-main::before{left:6px}
+  .dk-legend{margin-bottom:6px;font-size:9px}
+
+  /* КАРТОЧКА ТОВАРА. Была колонкой из семи блоков во всю ширину (около 380 точек
+     на товар, шесть товаров — шесть экранов пролистывания). Стала сеткой:
+     название и объём одной строкой, три числа в ряд, количество и кнопки
+     количества одной строкой, четыре действия в два столбца. Около 150 точек. */
+  .dk-tbl tbody tr{display:grid;grid-template-columns:1fr 1fr 1fr;
+    gap:5px 8px;padding:8px 9px;margin-bottom:7px}
+  .dk-tbl tbody td{display:block}
+  .dk-tbl td.c-name{grid-column:1/-1;margin-bottom:0}
+  .dk-tbl td.c-name .dk-name{display:inline;font-size:15px}
+  .dk-tbl td.c-name .dk-tag{margin-left:6px}
+  .dk-tbl td.c-name .dk-sub{display:inline;margin-left:6px;font-size:10px}
+  .dk-tbl td.c-ask,.dk-tbl td.c-bid,.dk-tbl td.c-hold{width:auto;margin-bottom:0}
+  .dk-tbl td.c-hold .hold-avg{font-size:12px}
+  .dk-tbl td.dk-qty{grid-column:1/-1;margin-bottom:0;display:flex;gap:6px;align-items:center}
+  .dk-tbl td.dk-qty .lbl{display:none}
+  .dk-qty .qstep{flex:0 0 108px}
+  .dk-qty .qbtns{flex:1;margin-top:0}
+  /* display:grid обязательно вернуть: правило выше (`.dk-tbl tbody td{display:block}`)
+     перебивает `.dk-acts{display:grid}` по специфичности, и четыре кнопки сделки
+     выстраивались в один ряд, вылезая за край карточки */
+  .dk-tbl td.dk-acts{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:4px}
+  .dk-acts button{padding:6px 3px}
+  .dk-foot-note{font-size:10px;margin-top:6px}
+
+  /* КАРТОЧКА КОНТРАКТА. То же самое: тот же состав, вдвое плотнее. */
+  #contracts,#duties{grid-template-columns:1fr;gap:7px}
+  .dk-card{padding:8px;font-size:11px;line-height:1.4}
+  .dk-card .need{font-size:12px;margin:1px 0 2px}
+  .dk-card .need b{font-size:15px}
+  .dk-card .terms{font-size:11px}
+  .dk-card .per{font-size:14px;margin-top:2px}
+  .dk-card .fine{font-size:10px;margin-top:3px;padding-top:3px}
+  .dk-card .row{margin-top:5px}
+
+  /* Записи и молва — рядом, а не одна под другой: два коротких столбца читаются
+     лучше, чем два длинных подряд */
+  .dk-log{max-height:150px}
+  .dk-log p{font-size:11px;line-height:1.45}
+  /* график: подписи в единицах viewBox, а он на телефоне вдвое у́же (см. NARROW) */
+  svg.dk-chart text{font-size:9px}
+  .dk-chart .today-lbl{font-size:9px}
+  .chart-key{font-size:10px}
+  .chart-tabs button{font-size:11px;padding:4px 7px}
+}
+
+/* ============ порядок секций на телефоне ============
+   На узком экране всё выстраивается в один столбец, и порядок начинает решать:
+   до панели «Дороги» — главной кнопки игры — приходилось листать через весь экран
+   («игра превратилась в симулятор прокрутки», Сергей 21.08). Поэтому на телефоне
+   секции идут в порядке частоты обращения: новости, ведомость, дороги, обязательства,
+   кредитор, график, контора, записи.
+
+   display:contents у колонок — чтобы секции из ОБЕИХ колонок встали в один поток
+   и могли перемешаться по order; сами колонки при этом исчезают как коробки.
+   Красная линия поля от .dk-main::before вместе с ними тоже исчезает — поэтому
+   на телефоне её рисует .dk-body. */
+@media (max-width:1000px){
+  .dk-body{display:flex;flex-direction:column;position:relative}
+  .dk-main,.dk-side{display:contents}
+  .dk-body::before{content:"";position:absolute;left:6px;top:0;bottom:0;width:3px;
+    border-left:1px solid rgba(163,43,34,.5);border-right:1px solid rgba(163,43,34,.5);
+    pointer-events:none;z-index:1}
+  .dk-body > *,.dk-main > *,.dk-side > *{border-top:1px solid var(--edge)}
+  /* порядок задан именами секций (data-sec в разметке), а не их номерами:
+     nth-of-type считает по ТЕГУ, а тут все секции — div, и любая вставка нового
+     блока молча перетасовала бы весь экран */
+  .dk-tickwrap{order:0;border-top:0}
+  [data-sec="ledger"]{order:1}
+  [data-sec="roads"]{order:2}
+  [data-sec="duty"]{order:3}
+  [data-sec="contracts"]{order:4}
+  [data-sec="debt"]{order:5}
+  [data-sec="chart"]{order:6}
+  [data-sec="office"]{order:7}
+  [data-sec="log"]{order:8}
+}

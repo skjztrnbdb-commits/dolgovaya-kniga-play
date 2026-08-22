@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- viewport-fit=cover — под вырезы и «чёлки»: игра занимает весь экран телефона,
+     а безопасные отступы берём в CSS через env(safe-area-inset-*) -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Debt Ledger</title>
+<meta name="description" content="An economic roguelike: you inherit a trading house together with its debt at compound interest. Haul goods between five markets and pay it off before the interest buries you. One run takes 20-50 minutes.">
+<meta name="theme-color" content="#E9EEE4">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23E9EEE4'/><text x='16' y='24' font-size='22' font-family='Georgia,serif' font-weight='700' text-anchor='middle' fill='%23A32B22'>%24</text></svg>">
+<!-- Шрифты подключены ссылкой, а не @import из style.css: @import находят только
+     после того, как CSS скачан и разобран, то есть загрузка шрифтов начинается
+     вторым кругом. На itch.io игра открывается в iframe и грузится с чужого домена,
+     лишний круг там заметен. preconnect — чтобы соединение с доменом шрифтов
+     устанавливалось параллельно, а не после. Если шрифты не приехали вовсе
+     (нет сети, блокировка), игра работает: в style.css у обоих семейств
+     прописаны системные запасные. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;600;700&family=Courier+Prime:wght@400;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- Разметка написана по-английски: английский — язык по умолчанию (см. lang.js),
+     и до того, как отработает applyLang(), игрок видит именно её. Русский приезжает
+     из lang-ru.js через data-t. -->
+<div class="dk-root" id="root">
+  <div class="dk-head">
+    <div class="dk-title"><span data-t="ui.title">The Debt Ledger</span><small id="sub" data-t="ui.house">the Windmill trading house</small></div>
+    <div class="dk-stats">
+      <div class="dk-stat"><span class="k" data-t="ui.day">Day</span><span class="v" id="s-day">1/30</span></div>
+      <div class="dk-stat"><span class="k" data-t="ui.cash">Cash</span><span class="v" id="s-cash">$0</span></div>
+      <div class="dk-stat"><span class="k" data-t="ui.hold">Hold</span><span class="v" id="s-cap">0/25</span></div>
+      <div class="dk-stat"><span class="k" data-t="ui.rate">Rate</span><span class="v" id="s-rate">2%</span></div>
+      <div class="dk-stat"><span class="k" data-t="ui.reserve">Reserve</span><span class="v" id="s-reserve">$0/$0</span></div>
+    </div>
+  </div>
+
+  <div class="dk-body">
+    <div class="dk-main">
+      <div class="dk-tickwrap"><div class="dk-ticker" id="ticker" style="display:none"><div class="tick-track" id="tick-track"></div></div></div>
+      <div class="dk-section" data-sec="chart">
+        <div class="dk-legend"><span><span id="chart-title" data-t="ui.chartPrices">Prices</span> · <em id="chart-good">—</em></span><span id="chart-note" data-t="ui.byObservations">what you have seen yourself</span></div>
+        <div class="chart-tabs" id="chart-tabs"></div>
+        <div id="chart"></div>
+        <div class="chart-key" id="chart-key"></div>
+      </div>
+      <div class="dk-section" data-sec="ledger">
+        <div class="dk-legend"><span><span data-t="ui.ledger">Ledger</span> · <em id="mkt-name">—</em></span><span id="mkt-day">—</span></div>
+        <table class="dk-tbl">
+          <colgroup><col style="width:19%"><col style="width:12%"><col style="width:12%">
+            <col style="width:18%"><col style="width:15%"><col style="width:24%"></colgroup>
+          <thead><tr><th data-t="ui.colGood">Goods</th><th data-t="ui.colBuy">Buy</th><th data-t="ui.colSell">Sell</th><th data-t="ui.colHold">In hold</th><th data-t="ui.colQty">Qty</th><th data-t="ui.colDeal">Deal</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <div class="dk-foot-note" id="tbl-note"></div>
+      </div>
+      <div class="dk-section dk-duty-sec" id="duty-sec" data-sec="duty" style="display:none">
+        <div class="dk-legend"><span data-t="ui.dutySec">Guild order</span><span id="d-count"></span></div>
+        <div id="duties"></div>
+      </div>
+      <div class="dk-section" data-sec="contracts">
+        <div class="dk-legend"><span data-t="ui.contracts">Contracts</span><span id="c-count"></span></div>
+        <div id="contracts"></div>
+      </div>
+      <div class="dk-two" data-sec="log">
+        <div><div class="dk-legend"><span data-t="ui.records">Records</span></div><div class="dk-log" id="log"></div></div>
+        <div><div class="dk-legend"><span data-t="ui.rumours">Word on the street</span><span id="rum-new"></span></div><div class="dk-log" id="rumours"></div></div>
+      </div>
+    </div>
+
+    <div class="dk-side">
+      <div class="dk-section" data-sec="debt">
+        <div class="dk-legend"><span data-t="ui.creditor">Creditor</span></div>
+        <div class="dk-debt" id="debt-panel"><div class="n"><span data-t="ui.debt">Debt</span><span id="rate2"></span></div>
+          <div class="v" id="s-debt">$0</div><div class="s" id="s-int"></div></div>
+        <div class="dk-bank">
+          <input type="number" id="bank-amt" min="0" step="500" placeholder="amount" data-ph="ui.sumHint">
+          <button id="repay" class="sell" data-t="ui.repay">Pay in</button>
+          <button id="borrow" class="buy" data-t="ui.borrow">Borrow</button>
+        </div>
+        <div class="dk-alert" id="bank-alert"></div>
+        <div class="dk-note" id="bank-note"></div>
+        <button class="wide" id="close-book" style="display:none" data-t="ui.closeBook">Close the book early</button>
+      </div>
+      <div class="dk-section" data-sec="office">
+        <div class="dk-legend"><span data-t="ui.office">Counting house</span></div>
+        <button class="wide" id="upgrade"></button>
+        <button class="wide" id="road"></button>
+        <button class="wide" id="horses"></button>
+        <button class="wide" id="tar"></button>
+        <button class="wide" id="appraise"></button>
+        <button class="wide" id="insure"></button>
+        <div class="dk-note" id="boosts"></div>
+      </div>
+      <div class="dk-section" data-sec="roads">
+        <div class="dk-legend"><span data-t="ui.roads">Roads</span></div>
+        <div id="here"></div>
+        <div id="map"></div>
+        <div class="dk-dir" id="dir"></div>
+        <div id="markets"></div>
+        <button class="wide" id="wait"></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="dk-foot">
+    <button id="export" data-t="ui.logBtn">Log</button>
+    <button id="settings" data-t="ui.settingsBtn">⚙ Settings</button>
+    <button id="restart" data-t="ui.menuBtn">Menu</button>
+    <span class="sp" id="tel-count"></span>
+    <span class="build" id="build">build</span>
+  </div>
+</div>
+
+<!-- Только вертикальный вид (решение Сергея, 21.08): играть с повёрнутым экраном
+     неудобно никому, а лежачая ориентация ещё и отпугивает — часть игроков просто
+     не ставит такие игры. Поэтому в альбомной ориентации на телефоне игра не
+     подстраивается под неё, а просит повернуть обратно. Чистый CSS, без скриптов:
+     работает и до того, как что-то загрузится. -->
+<div class="dk-rotate" id="rotate">
+  <svg viewBox="0 0 120 100" width="120" height="100" aria-hidden="true">
+    <rect x="34" y="8" width="52" height="84" rx="7" fill="none" stroke="currentColor" stroke-width="3"/>
+    <line x1="52" y1="18" x2="68" y2="18" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="60" cy="83" r="3" fill="currentColor"/>
+    <path d="M18 58 A34 34 0 0 1 30 32" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    <path d="M24 30 L31 31 L30 38" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M102 42 A34 34 0 0 1 90 68" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    <path d="M96 70 L89 69 L90 62" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <h2 data-t="ui.rotateTitle">Turn your phone upright</h2>
+  <p data-t="ui.rotateText">The Debt Ledger is played standing up — that is how ledgers are kept.</p>
+</div>
+
+<!-- Игра целиком на JavaScript: если он выключен, экран останется пустой разметкой
+     без единого объяснения. На itch.io это ещё вероятнее, чем на своей странице:
+     туда заходят с чужих устройств и из встроенных браузеров. -->
+<noscript>
+  <div class="dk-noscript">
+    <h2>The Debt Ledger needs JavaScript</h2>
+    <p>The game runs entirely in your browser — no server, no accounts. Turn JavaScript on for this page and reload.</p>
+  </div>
+</noscript>
+
+<script src="js/data.js"></script>
+<script src="js/lang-ru.js"></script>
+<script src="js/lang-en.js"></script>
+<script src="js/lang.js"></script>
+<script src="js/state.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/telemetry.js"></script>
+<script src="js/economy.js"></script>
+<script src="js/contracts.js"></script>
+<script src="js/world.js"></script>
+<script src="js/trading.js"></script>
+<script src="js/render.js"></script>
+<script src="js/tutorial.js"></script>
+<script src="js/tutorial-ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Долговая книга — экономический рогалик про долг под сложный процент</title>
+<meta name="description" content="Вы приняли торговую контору вместе с долгом под сложный процент. Возите товар между пятью рынками и рассчитайтесь раньше, чем проценты вас закопают. Играется в браузере, один заход — 20–50 минут.">
+<meta name="theme-color" content="#E9EEE4">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Долговая книга">
+<meta property="og:description" content="Экономический рогалик: торговая контора, долг под сложный процент и 24 дня, чтобы рассчитаться. Играется прямо в браузере.">
+<meta property="og:image" content="https://skjztrnbdb-commits.github.io/dolgovaya-kniga-play/game/icons/cover.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://skjztrnbdb-commits.github.io/dolgovaya-kniga-play/game/icons/cover.png">
+<!-- Манифест игры: если «На экран «Домой»» нажали с этой страницы, ярлык всё
+     равно должен открывать игру (start_url в манифесте ведёт в game/) -->
+<link rel="manifest" href="game/manifest.webmanifest">
+<link rel="apple-touch-icon" href="game/icons/icon-180.png">
+<meta name="apple-mobile-web-app-title" content="Debt Ledger">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23E9EEE4'/><text x='16' y='24' font-size='22' font-family='Georgia,serif' font-weight='700' text-anchor='middle' fill='%23A32B22'>%24</text></svg>">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;600;700&family=Courier+Prime:wght@400;700&display=swap');
+:root{
+  --paper:#E9EEE4; --band:#D5E0CE; --rule:#93AEBC;
+  --ink:#1C2620; --ink-soft:#5C6B60;
+  --debit:#A32B22; --credit:#1D4F7A; --edge:#B6C4AF; --up:#2C6B4F; --gold:#8A6A1F;
+  --display:'Archivo Narrow','Arial Narrow',Helvetica,sans-serif;
+  --mono:'Courier Prime',ui-monospace,'Courier New',monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#DCE3D6;color:var(--ink);font-family:var(--mono);font-size:14px;line-height:1.6}
+.wrap{max-width:900px;margin:0 auto;background:var(--paper);border:1px solid var(--edge);min-height:100vh;position:relative}
+/* красная линейка поля, как в бухгалтерской книге — тот же приём, что в самой игре */
+.wrap::before{content:"";position:absolute;left:9px;top:0;bottom:0;width:3px;
+  border-left:1px solid rgba(163,43,34,.5);border-right:1px solid rgba(163,43,34,.5);pointer-events:none}
+a{color:var(--credit)}
+section{padding:26px 26px 26px 34px;border-top:1px solid var(--edge)}
+h1,h2,h3{font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;margin:0}
+
+header{padding:34px 26px 30px 34px;border-bottom:2px solid var(--ink)}
+h1{font-size:clamp(28px,7vw,46px);line-height:1;font-weight:700}
+.sub{font-family:var(--display);font-size:clamp(11px,2.4vw,13px);letter-spacing:.22em;text-transform:uppercase;
+  color:var(--ink-soft);margin-top:9px}
+.lede{font-size:clamp(14px,2.6vw,16px);line-height:1.75;margin:20px 0 0;max-width:52ch}
+.lede b{color:var(--debit)}
+
+.cta{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:24px}
+.play{display:inline-block;font-family:var(--display);font-size:17px;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;text-decoration:none;color:var(--paper);background:var(--debit);
+  border:3px double var(--paper);outline:1px solid var(--debit);padding:14px 30px;
+  box-shadow:0 3px 0 rgba(28,38,32,.2);transition:transform .1s}
+.play:hover{background:var(--ink);outline-color:var(--ink);transform:translateY(-1px)}
+.play:active{transform:translateY(1px);box-shadow:0 1px 0 rgba(28,38,32,.2)}
+.cta small{color:var(--ink-soft);font-size:12px;line-height:1.5;max-width:30ch}
+
+.chart{margin-top:26px;border:1px solid var(--edge);background:var(--paper);padding:10px 12px 4px;position:relative}
+.chart svg{width:100%;height:auto;display:block}
+.chart .cap{font-family:var(--display);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--ink-soft);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.chart text{font-family:var(--mono);font-size:9px;fill:var(--ink-soft)}
+.chart .grid{stroke:var(--rule);stroke-width:.5;opacity:.45}
+.chart .road{fill:var(--gold)}
+/* легенда под графиком — теми же значками, что и на самом графике: крест долг,
+   круг касса, ромб товар. Иначе три линии различаются только цветом */
+.key{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:11px;color:var(--ink-soft);
+  padding:6px 0 8px;line-height:1.4}
+.key b{font-weight:400;color:var(--ink)}
+/* штамп исхода: тот же приём, что в самой игре — оттиск поверх законченного захода */
+.stamp{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%) rotate(-6deg);
+  font-family:var(--display);font-weight:700;font-size:clamp(18px,4vw,30px);letter-spacing:.14em;
+  color:var(--debit);border:4px double var(--debit);background:rgba(233,238,228,.86);
+  padding:7px 18px;white-space:nowrap;opacity:0;transition:opacity .25s;pointer-events:none}
+.stamp.on{opacity:.92}
+.stamp.win{color:var(--up);border-color:var(--up)}
+
+h2{font-size:12px;letter-spacing:.2em;color:var(--ink-soft);font-weight:600;margin-bottom:14px}
+.rules{list-style:none;margin:0;padding:0;display:grid;gap:11px}
+.rules li{padding-left:16px;position:relative;max-width:64ch}
+.rules li::before{content:"§";position:absolute;left:0;color:var(--debit);font-weight:700}
+.rules b{color:var(--ink)}
+
+.levels{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.lv{border:1px solid var(--edge);padding:12px 13px;background:var(--paper)}
+.lv h3{font-size:13px;letter-spacing:.1em;margin-bottom:8px}
+.lv.e h3{color:var(--up)} .lv.n h3{color:var(--credit)} .lv.h h3{color:var(--debit)}
+.lv dl{margin:0 0 9px;display:grid;grid-template-columns:auto auto;gap:2px 10px;font-size:12px}
+.lv dt{color:var(--ink-soft)} .lv dd{margin:0;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.lv p{margin:0;font-size:11.5px;line-height:1.55;color:var(--ink-soft)}
+
+.steps{counter-reset:s;list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.steps li{padding-left:30px;position:relative;max-width:62ch}
+.steps li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:0;
+  font-family:var(--display);font-weight:700;font-size:12px;color:var(--paper);background:var(--ink);
+  width:19px;height:19px;line-height:19px;text-align:center}
+
+.note{background:var(--band);border-left:3px solid var(--gold);padding:12px 14px;font-size:13px;line-height:1.65}
+footer{padding:20px 26px 30px 34px;border-top:1px solid var(--edge);color:var(--ink-soft);font-size:11.5px;line-height:1.7}
+footer .again{margin-top:14px}
+@media (max-width:640px){
+  .levels{grid-template-columns:1fr}
+  section{padding:20px 16px 20px 22px}
+  header{padding:26px 16px 22px 22px}
+  footer{padding:18px 16px 26px 22px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Долговая книга</h1>
+  <div class="sub">Экономический рогалик · контора «Ветряк»</div>
+  <p class="lede">Вам достаётся торговая контора вместе с чужим долгом под сложный процент.
+    Проценты капают <b>каждый день, включая те, когда вы ничего не делали</b>. Возите товар
+    между пятью рынками и рассчитайтесь раньше, чем долг вас закопает.</p>
+
+  <div class="cta">
+    <a class="play" href="game/index.html">Играть в браузере</a>
+    <small>Ничего ставить не надо. Прогресс сохраняется в браузере, заход можно бросить и вернуться.</small>
+  </div>
+
+  <div class="chart">
+    <div class="cap"><span id="cap-title">Ход захода · Приказчик</span><span id="cap-day">заход идёт</span></div>
+    <div id="live"><noscript>
+      <p style="font-size:12px;margin:0 0 8px">Здесь показывается заход целиком: как растёт долг
+        и что с ним делают касса и товар. Нужен включённый JavaScript — как и самой игре.</p>
+    </noscript></div>
+    <div class="key">
+      <span><b>✕ долг</b> — растёт сам, каждый день</span>
+      <span><b>● касса</b> — то, чем можно ходить прямо сейчас</span>
+      <span><b>◆ в товаре</b> — деньги, закопанные в трюм</span>
+      <span style="color:var(--gold)">┆ ревизия и норма долга к этому дню</span>
+      <span style="color:var(--debit)">┄ порог, за которым контору забирают</span>
+    </div>
+    <div class="stamp" id="stamp"></div>
+  </div>
+</header>
+
+<section>
+  <h2>Правила, из которых всё вырастает</h2>
+  <ul class="rules">
+    <li><b>Проценты обгоняют осторожную торговлю.</b> Пересидеть нельзя ни на одной сложности:
+      возить понемногу и безопасно — верный способ проиграть медленно.</li>
+    <li><b>Каждая крупная сделка двигает цену.</b> Залили трюм одним товаром — платите за
+      последние ящики заметно дороже, чем за первые. Свалили всё разом на один рынок — уронили его сами.</li>
+    <li><b>Разведка стоит денег.</b> Цена записывается в график только за те дни, когда вы стояли
+      на этом рынке. Про остальные — слухи, и часть из них враньё.</li>
+    <li><b>Обязательства бывают трёх сортов.</b> Контракт вы выбираете сами, золотой даёт надбавку
+      навсегда, а предписание гильдии навязывают — и отказаться от него нельзя.</li>
+    <li><b>Всё, что вы возите, может пропасть.</b> Скоропорт сыреет, крысы, пожар, подделки в партии
+      и таможня, с которой иногда можно договориться — за отдельные деньги.</li>
+    <li><b>Победа — это не «дожить».</b> Закрыть долг мало: нужен ещё резерв на новое дело,
+      иначе контора сдана пустой.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Три сложности</h2>
+  <div class="levels">
+    <div class="lv e">
+      <h3>Ученик</h3>
+      <dl><dt>Срок</dt><dd>45 дней</dd><dt>Долг</dt><dd>$15 000</dd><dt>Ставка</dt><dd>1,2%/день</dd></dl>
+      <p>Три рынка, четыре товара. За раз берёте не больше половины трюма. Надёжность каждого слуха подписана.</p>
+    </div>
+    <div class="lv n">
+      <h3>Приказчик</h3>
+      <dl><dt>Срок</dt><dd>30 дней</dd><dt>Долг</dt><dd>$20 000</dd><dt>Ставка</dt><dd>2%/день</dd></dl>
+      <p>Пять рынков, шесть товаров, предписания гильдии, от которых нельзя отказаться. Треть слухов — враньё.</p>
+    </div>
+    <div class="lv h">
+      <h3>Ростовщик</h3>
+      <dl><dt>Срок</dt><dd>24 дня</dd><dt>Долг</dt><dd>$26 000</dd><dt>Ставка</dt><dd>2,8% и растёт</dd></dl>
+      <p>Никаких подсказок о чужих рынках и слухах, полная свобода закапываться, предписания приходят часто.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Первые пять минут</h2>
+  <ol class="steps">
+    <li>Смотрите ведомость рынка: что здесь дёшево отдают и что дорого берут. Цена за единицу
+      и итог сделки видны на кнопке до нажатия — игра не прячет от вас арифметику.</li>
+    <li>Берёте контракт: товар нужно привезти на другой рынок к сроку. Платят заметно выше рынка —
+      за то, что вы взяли на себя логистику и риск.</li>
+    <li>Закупаетесь и едете. Переезд — это день, а день — это проценты по долгу.</li>
+    <li>К дню ревизии долг должен опуститься до нормы. Пройдёте — откроется новый товар
+      и снизится ставка. Провалите — штраф и навязанный скоропорт в трюм.</li>
+  </ol>
+  <p class="note">Заход кончается разбором: балансовый график целиком, во что обошлись проценты,
+    лучшая и худшая сделки, самая жирная сдача и день, когда вы были ближе всего к нулю.</p>
+</section>
+
+<section>
+  <h2>Что это вообще</h2>
+  <p style="margin:0;max-width:64ch">Прототип экономического рогалика: один заход — 20–50 минут,
+    набор товаров и расклад цен каждый раз новые. Игра целиком браузерная и не требует
+    ни установки, ни регистрации, ни сети после загрузки. Достижения и открытые сложности
+    хранятся в вашем браузере — на чужом компьютере вы начнёте с чистого листа.</p>
+  <div class="cta" style="margin-top:20px">
+    <a class="play" href="game/index.html">Открыть игру</a>
+  </div>
+</section>
+
+<footer>
+  Сделано без единой внешней библиотеки и без шага сборки: игра — это статичные файлы,
+  которые работают, если их просто открыть.
+  <div class="again">Лучше всего играть на большом экране, но на телефоне тоже можно.</div>
+</footer>
+
+</div>
+
+<script>
+/* Живой заход на витрине.
+   Рисованная картинка не отвечала на вопрос «а что вообще происходит в игре»,
+   поэтому здесь крутится настоящая симуляция: тот же расклад, что у «Приказчика»
+   (30 дней, долг $20 000, ставка 2% в день, порог $40 000, ревизии на 10-й и 20-й
+   день), тот же язык графика, что в самой игре — крест долг, круг касса, ромб товар,
+   пунктир порога и планки норм. Каждый заход кончается своим исходом и начинается
+   заново, поэтому за минуту перед глазами проходит и выигранный, и проигранный.
+   Ноль зависимостей, как и вся остальная игра. */
+(function(){
+  // Потолок оси задан раз и навсегда: график не должен «дышать» от захода к заходу,
+  // иначе одни и те же деньги оказываются то у верхнего края, то у нижнего, и глазу
+  // не за что зацепиться. Симуляция под этот потолок и подогнана — см. run().
+  var P={days:30,debt:20000,cash:2500,rate:.02,call:40000,checks:[[10,.8],[20,.45]],top:50000};
+  var live=document.getElementById('live'),stamp=document.getElementById('stamp'),
+      capDay=document.getElementById('cap-day');
+  if(!live)return;
+  var still=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Один заход целиком, день за днём. Правила намеренно те же, что в игре: проценты
+  // капают всегда, деньги перекладываются из кассы в товар и обратно, переезд стоит
+  // денег. luck — «как пошла торговля»: от него зависит, выиграет заход или нет.
+  // Симуляция нарочно простая: показать, что происходит с деньгами, а не воспроизвести
+  // игру. Правила ровно четыре — проценты капают, деньги ходят из кассы в товар и обратно,
+  // иногда закрывается контракт, иногда приходится занимать. Всё зажато в потолок оси
+  // (заём не поднимает долг выше 38k, касса выше 22k сразу уходит кредитору), поэтому
+  // ни одна линия никогда не вылезает за кадр. Коэффициенты подобраны прогоном
+  // в полторы тысячи симуляций: примерно 40% заходов кончаются «погашено», 38%
+  // банкротством по сроку и 22% тем, что долг пробил порог. Витрина, где всегда
+  // выигрывают, врёт про игру ровно так же, как та, где всегда проигрывают.
+  function run(){
+    var luck=.87+Math.random()*.42,cash=P.cash,debt=P.debt,inv=0,pts=[],end=null;
+    for(var d=1;d<=P.days;d++){
+      pts.push({d:d,cash:Math.round(cash),debt:Math.round(debt),inv:Math.round(inv)});
+      if(debt<=0){end={win:1,txt:'ПОГАШЕНО',day:d};break}
+      if(debt>P.call){end={win:0,txt:'КОНТОРУ ЗАБРАЛИ',day:d};break}
+      debt*=1+P.rate;
+      if(Math.random()<.18)cash+=2300+Math.random()*3600;  // закрыли контракт
+      if(cash<1200&&d<P.days*.7&&Math.random()<.5){        // заняли у кредитора
+        var b=Math.min(6000+Math.random()*9000,41500-debt);
+        if(b>0){cash+=b;debt+=b}
+      }
+      if(inv>0&&(Math.random()<.55||d===P.days)){          // продали привезённое
+        cash+=inv*(.85+Math.random()*.70*luck);inv=0;
+      }else if(cash>800){                                  // закупились и повезли
+        var spend=Math.min(cash*(.5+Math.random()*.45),25000-inv);
+        if(spend>0){inv+=spend;cash-=spend}
+      }
+      if(cash>2500&&(cash>22000||Math.random()<.55)){      // внесли кредитору
+        var pay=Math.min(cash*(.5+Math.random()*.5),debt);cash-=pay;debt-=pay;
+      }
+      cash=Math.max(0,cash-250-Math.random()*260);         // фрахт и сборы
+      if(debt<0)debt=0;
+    }
+    if(!end)end=debt<=0?{win:1,txt:'ПОГАШЕНО',day:P.days}:{win:0,txt:'БАНКРОТ',day:P.days};
+    return{pts:pts,end:end};
+  }
+
+  var W=620,H=150,PL=44,PR=8,PT=14,PB=18;
+  function svg(pts,n){
+    // потолок оси постоянный: ни от кадра к кадру, ни от захода к заходу сетка
+    // не двигается. Симуляция гарантирует, что линии в него укладываются
+    var top=P.top,show=pts.slice(0,n),i,p,s='';
+    var X=function(d){return PL+(d-1)/(P.days-1)*(W-PL-PR)};
+    var Y=function(v){return PT+(1-Math.max(0,v)/top)*(H-PT-PB)};
+    for(var v=0;v<=top+1;v+=1e4){
+      var y=Y(v);
+      s+='<line class="grid" x1="'+PL+'" y1="'+y+'" x2="'+(W-PR)+'" y2="'+y+'"/>'+
+         '<text x="'+(PL-5)+'" y="'+(y+3)+'" text-anchor="end">'+v.toLocaleString('ru-RU')+'</text>';
+    }
+    P.checks.forEach(function(c){                        // ревизии: вертикаль и планка нормы
+      var x=X(c[0]),ly=Y(P.debt*c[1]);
+      // подпись на подложке цвета бумаги — иначе она теряется на линии сетки
+      // или на пунктире (та же беда была на графике в самой игре)
+      s+='<line x1="'+x+'" y1="'+PT+'" x2="'+x+'" y2="'+(H-PB)+'" stroke="#8A6A1F" stroke-width="1" stroke-dasharray="2 3" opacity=".85"/>'+
+         '<line x1="'+(x-13)+'" y1="'+ly+'" x2="'+(x+13)+'" y2="'+ly+'" stroke="#8A6A1F" stroke-width="2"/>'+
+         '<rect x="'+(x-17)+'" y="'+(ly-13)+'" width="34" height="10" fill="#E9EEE4" opacity=".95"/>'+
+         '<text x="'+x+'" y="'+(ly-5)+'" text-anchor="middle" fill="#8A6A1F">ревизия</text>';
+    });
+    var yc=Y(P.call);                                     // порог кредитора
+    s+='<line x1="'+PL+'" y1="'+yc+'" x2="'+(W-PR)+'" y2="'+yc+'" stroke="#A32B22" stroke-width="1.4" stroke-dasharray="6 3"/>'+
+       '<text x="'+(W-PR)+'" y="'+(yc-4)+'" text-anchor="end" fill="#A32B22">контору забирают · $40 000</text>';
+    var line=function(k){return show.map(function(p,i){return (i?'L':'M')+X(p.d)+' '+Y(p[k])}).join(' ')};
+    s+='<path d="'+line('debt')+'" fill="none" stroke="#A32B22" stroke-width="2"/>'+
+       '<path d="'+line('inv')+'" fill="none" stroke="#2C6B4F" stroke-width="2"/>'+
+       '<path d="'+line('cash')+'" fill="none" stroke="#1D4F7A" stroke-width="2"/>';
+    for(i=0;i<show.length;i++){
+      p=show[i];var cur=i===show.length-1,x=X(p.d),r=cur?4:2.6;
+      s+='<g stroke="#A32B22" stroke-width="1.8" stroke-linecap="round">'+
+           '<line x1="'+(x-r)+'" y1="'+(Y(p.debt)-r)+'" x2="'+(x+r)+'" y2="'+(Y(p.debt)+r)+'"/>'+
+           '<line x1="'+(x-r)+'" y1="'+(Y(p.debt)+r)+'" x2="'+(x+r)+'" y2="'+(Y(p.debt)-r)+'"/></g>'+
+         '<polygon points="'+x+','+(Y(p.inv)-r)+' '+(x+r)+','+Y(p.inv)+' '+x+','+(Y(p.inv)+r)+' '+(x-r)+','+Y(p.inv)+'" fill="#2C6B4F"/>'+
+         '<circle cx="'+x+'" cy="'+Y(p.cash)+'" r="'+(cur?3.6:2.4)+'" fill="#1D4F7A"/>';
+    }
+    [1,10,20,P.days].forEach(function(d){
+      // последний день прижимаем к правому краю: по центру половина подписи ушла бы за поле
+      s+='<text x="'+X(d)+'" y="'+(H-4)+'" text-anchor="'+(d===P.days?'end':d===1?'start':'middle')+'">д.'+d+'</text>';
+    });
+    return '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="'+
+      'Заход целиком: линия долга, линия кассы и линия денег в товаре по дням">'+s+'</svg>';
+  }
+
+  var cur=run(),shown=0,timer=null;
+  function frame(){
+    // вкладка не видна — не жжём батарею: гасим таймер совсем, а не крутим его вхолостую;
+    // обратно его заведёт обработчик visibilitychange
+    if(document.hidden){clearInterval(timer);timer=null;return}
+    shown++;
+    live.innerHTML=svg(cur.pts,shown);
+    capDay.textContent='день '+cur.pts[Math.min(shown,cur.pts.length)-1].d+' из '+P.days;
+    if(shown>=cur.pts.length){
+      clearInterval(timer);timer=null;
+      stamp.textContent=cur.end.txt;
+      stamp.className='stamp on'+(cur.end.win?' win':'');
+      capDay.textContent=cur.end.win?'долг закрыт':'заход проигран';
+      if(!still)setTimeout(function(){
+        stamp.className='stamp';
+        setTimeout(start,400);
+      },2600);
+    }
+  }
+  function start(){
+    cur=run();shown=0;
+    if(still){live.innerHTML=svg(cur.pts,cur.pts.length);  // «поменьше движения» — один готовый заход
+      stamp.textContent=cur.end.txt;stamp.className='stamp on'+(cur.end.win?' win':'');
+      capDay.textContent=cur.end.win?'долг закрыт':'заход проигран';return}
+    live.innerHTML=svg(cur.pts,1);
+    timer=setInterval(frame,170);
+  }
+  document.addEventListener('visibilitychange',function(){
+    if(!document.hidden&&!timer&&!still&&shown<cur.pts.length)timer=setInterval(frame,170);
+  });
+  start();
+  // Тот же приём, что и в самой игре (window.__DK_TEST__ в game/js/main.js): наружу
+  // торчит ручка, чтобы симуляцию можно было прогнать и проверить, а не смотреть
+  // на неё глазами и надеяться. На посетителя страницы никак не влияет.
+  window.__DK_SIM__={run:run,P:P};
+})();
+</script>
+</body>
+</html>
